@@ -7,7 +7,6 @@ pdctAB <- a*b
 
 summary(b)
 mean(a)
-plot(a)
 median(c(500, 600, 700))
 var(b)
 sqrt(3546)
@@ -92,3 +91,60 @@ mat1 %% mat2
 
 #Arrays
 array(1:50, dim = c (3, 3, 2))
+
+#Lab3_05-03-2026__________________________________________
+
+#Layering
+ar2 <- array(1:50, dim = c(2, 2, 4))
+
+ar2[ ,2,3]
+ar2[c(1,2),2, 3]
+ar2[1:2, 2, 3]
+
+#applying operations on specific rows and columns
+
+#apply(arrayName, MARGIN = 1 or 2, FUN = operation)
+apply(ar2, MARGIN = 1, FUN = sum)
+
+#data frames
+df <- data.frame(
+  ID= c(1, 2, 3, 4, 5),
+  Name = c("Alice", "Bob", "Charlie", "David", "Eve"),
+  Age = c(25, 30, 35, 40, 45),
+  Score = c(85, 90, 43, 80, 46),
+  Passed = c(TRUE, TRUE, FALSE, TRUE, FALSE)
+)
+print(df)
+
+#accessing data frames
+mean(df$Age)
+print(df$Name)
+summary(df$Score)
+
+#filtering records
+print(df[2,])
+
+print(df[df$Age > 35,])
+print(df[df$Age > mean(df$Age),])
+
+print(df[df$Age > 35,c(2,4)])
+print(df[df$Age > 35,c("Name","Score")])
+
+print(df[df$Passed == TRUE,])
+
+#adding new cols or rows
+df$Grade <- c("B", "A", "F", "B", "F")
+
+#ordering/sorting
+print(df[order(df$Age)])
+print(df[order(-df$Age)])
+print(df[order(df$Age, decreasing = TRUE)])
+
+#modifying data
+df$Score[df$Name == "Bob"] <- 80
+df$Grade[df$Name == "Bob"] <- "B"
+
+df[df$Name == "Bob", "Score"] <- 80
+
+df$Score <- df$Score + 5
+
