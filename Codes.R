@@ -148,3 +148,53 @@ df[df$Name == "Bob", "Score"] <- 80
 
 df$Score <- df$Score + 5
 
+
+#--------------------
+#16-04-2026
+
+
+#using the iris dataset
+mean(iris$Sepal.Length[iris$Species == "setosa"])
+median(iris$Sepal.Length[iris$Species == "setosa"])
+var(iris$Sepal.Length[iris$Species == "setosa"])
+sd(iris$Sepal.Length[iris$Species == "setosa"])
+
+library(dplyr)
+
+#using pipe operator to calculate summary stats for each species
+iris %>%
+  group_by(Species) %>%
+  summarise(
+    count = n(),
+    mean_sepal_length = mean(Sepal.Length),
+    median_sepal_length = median(Sepal.Length),
+    var_sepal_length = var(Sepal.Length),
+    sd_sepal_length = sd(Sepal.Length),
+    
+    
+    mean_petal_length = mean(Petal.Length),
+    median_petal_length = median(Petal.Length),
+    var_petal_length = var(Petal.Length),
+    sd_petal_length = sd(Petal.Length)
+  )
+
+pairs(iris[,1:4], main = "Scatterplot", col = iris$Species, pch = 19)
+
+#scrapping data from web
+install.packages("rvest")
+library(rvest)
+url <- "https://books.toscrape.com/"
+webpage <- read_html(url)
+
+#imdb <- read_html("https://www.imdb.com/chart/top")-----Blocked
+
+#scrapping using node selector
+title <- webpage %>%
+  html_nodes(".product_pod h3 a") %>%
+  html_attr("title")
+
+#scrpping using element selector
+price <- webpage %>%
+  html_element(".price_color") %>%
+  html_text()
+
