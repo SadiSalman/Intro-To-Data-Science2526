@@ -198,3 +198,64 @@ price <- webpage %>%
   html_element(".price_color") %>%
   html_text()
 
+#______________23-04-2026__________________________
+
+#using mtcars dataset
+install.packages("ggplot2")
+library(ggplot2)
+
+#using base R to create a scatter plot
+print(mtcars)
+ggplot(mtcars, aes(x = hp, y = mpg)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "red")+
+  labs(title = "Horsepower vs Miles Per Gallon",
+       x = "Horsepower (hp)",
+       y = "Miles Per Gallon (mpg)")+
+  theme_minimal()
+
+#using  a box plot function
+#{ggplot(mtcars, aes(x = factor(cyl), y = mpg)) +
+ # geom_boxplot() +
+ # labs(title = "Miles Per Gallon by Number of Cylinders",
+    #   x = "Number of Cylinders",
+  #     y = "Miles Per Gallon (mpg)")+
+  #fill = "lightblue"}
+  
+#using ggcorrplot to visualize correlation
+
+install.packages("ggcorrplot")
+library(ggcorrplot)
+cor_matrix <- cor(mtcars[, sapply(mtcars, is.numeric)])
+ggcorrplot(cor_matrix, method = "circle", type = "lower", lab = TRUE, title = "Correlation Matrix of mtcars Dataset")
+
+
+#handling missing values
+library(dplyr)
+cleaned_mtcars <- na.omit(mtcars)
+
+cleaned_mtcars <- mtcars %>%
+  na.omit()
+
+#data wrangling with dplyr
+#filtering records
+mtcars_filtered <- cleaned_mtcars %>%
+  filter(mpg> 20 & hp > 100)
+
+#selecting specific columns
+mtcars_selected <- cleaned_mtcars %>%
+  select(mpg, hp, disp, carb)
+
+#using both select and filter together
+mtcars_filtered_selected <- cleaned_mtcars %>%
+  filter(hp > 100) %>%
+  select(mpg, hp, wt, vs)
+
+#using mutate to create new columns
+mtcars_mutated <- mtcars %>%
+  mutate(mpg_per_hp = mpg / hp, 
+         weight_class = ifelse(wt > 3, "Heavy", "Light"))
+
+#scaling data
+
+  
