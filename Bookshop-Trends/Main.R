@@ -17,10 +17,6 @@ link11t15 <- paste0("https://www.bookowlsbd.com/collections/frontpage?page=", 11
 link16t20 <- paste0("https://www.bookowlsbd.com/collections/frontpage?page=", 16:20)
 link21t25 <- paste0("https://www.bookowlsbd.com/collections/frontpage?page=", 21:25)
 link26t30 <- paste0("https://www.bookowlsbd.com/collections/frontpage?page=", 26:30)
-link31t35 <- paste0("https://www.bookowlsbd.com/collections/frontpage?page=", 31:35)
-link36t40 <- paste0("https://www.bookowlsbd.com/collections/frontpage?page=", 36:40)
-link41t45 <- paste0("https://www.bookowlsbd.com/collections/frontpage?page=", 41:45)
-link46t50 <- paste0("https://www.bookowlsbd.com/collections/frontpage?page=", 46:50)
 
 #Defining a function to read the webpage and extract the relevant nodes
 read_webpage <- function(link) {
@@ -74,12 +70,8 @@ books_data3 <- bind_rows(future_lapply(link11t15, read_webpage))
 books_data4 <- bind_rows(future_lapply(link16t20, read_webpage))
 books_data5 <- bind_rows(future_lapply(link21t25, read_webpage))
 books_data6 <- bind_rows(future_lapply(link26t30, read_webpage))
-books_data7 <- bind_rows(future_lapply(link31t35, read_webpage))
-books_data8 <- bind_rows(future_lapply(link36t40, read_webpage))
-books_data9 <- bind_rows(future_lapply(link41t45, read_webpage))
-books_data10 <- bind_rows(future_lapply(link46t50, read_webpage))
 
-# Removing non-books (rows with NA author)
++# Removing non-books (rows with NA author)
 books_clean1 <- books_data1 %>% 
   filter(!is.na(authors))
 books_clean2 <- books_data2 %>% 
@@ -91,14 +83,6 @@ books_clean4 <- books_data4 %>%
 books_clean5 <- books_data5 %>%
   filter(!is.na(authors))
 books_clean6 <- books_data6 %>%
-  filter(!is.na(authors))
-books_clean7 <- books_data7 %>%
-  filter(!is.na(authors))
-books_clean8 <- books_data8 %>%
-  filter(!is.na(authors))
-books_clean9 <- books_data9 %>%
-  filter(!is.na(authors))
-books_clean10 <- books_data10 %>%
   filter(!is.na(authors))
 
 #Function to get book details from the product page
@@ -135,10 +119,6 @@ details_list3 <- future_lapply(books_clean3$url, get_book_details)
 details_list4 <- future_lapply(books_clean4$url, get_book_details)
 details_list5 <- future_lapply(books_clean5$url, get_book_details)
 details_list6 <- future_lapply(books_clean6$url, get_book_details)
-details_list7 <- future_lapply(books_clean7$url, get_book_details)
-details_list8 <- future_lapply(books_clean8$url, get_book_details)
-details_list9 <- future_lapply(books_clean9$url, get_book_details)
-details_list10 <- future_lapply(books_clean10$url, get_book_details)
 
 #Binding all the batches into separate data frames
 details_df1 <- bind_rows(details_list1)
@@ -147,42 +127,34 @@ details_df3 <- bind_rows(details_list3)
 details_df4 <- bind_rows(details_list4)
 details_df5 <- bind_rows(details_list5)
 details_df6 <- bind_rows(details_list6)
-details_df7 <- bind_rows(details_list7)
-details_df8 <- bind_rows(details_list8)
-details_df9 <- bind_rows(details_list9)
-details_df10 <- bind_rows(details_list10)
 
 # Merging page column and details column back to cleaned data frames
-books_clean1 <- books_clean1 %>%
-  left_join(details_df1, by = "url")
-books_clean2 <- books_clean2 %>%
-  left_join(details_df2, by = "url")
-books_clean3 <- books_clean3 %>%
-  left_join(details_df3, by = "url")
-books_clean4 <- books_clean4 %>%
-  left_join(details_df4, by = "url")
-books_clean5 <- books_clean5 %>%
-  left_join(details_df5, by = "url")
-books_clean6 <- books_clean6 %>%
-  left_join(details_df6, by = "url")
-books_clean7 <- books_clean7 %>%
-  left_join(details_df7, by = "url")
-books_clean8 <- books_clean8 %>%
-  left_join(details_df8, by = "url")
-books_clean9 <- books_clean9 %>%
-  left_join(details_df9, by = "url")
-books_clean10 <- books_clean10 %>%
-  left_join(details_df10, by = "url")
+# Deduplicate details data frames before joining
+details_df1 <- details_df1 %>% distinct(url, .keep_all = TRUE)
+details_df2 <- details_df2 %>% distinct(url, .keep_all = TRUE)
+details_df3 <- details_df3 %>% distinct(url, .keep_all = TRUE)
+details_df4 <- details_df4 %>% distinct(url, .keep_all = TRUE)
+details_df5 <- details_df5 %>% distinct(url, .keep_all = TRUE)
+details_df6 <- details_df6 %>% distinct(url, .keep_all = TRUE)
+
+#join safely
+books_clean1 <- books_clean1 %>% left_join(details_df1, by = "url")
+books_clean2 <- books_clean2 %>% left_join(details_df2, by = "url")
+books_clean3 <- books_clean3 %>% left_join(details_df3, by = "url")
+books_clean4 <- books_clean4 %>% left_join(details_df4, by = "url")
+books_clean5 <- books_clean5 %>% left_join(details_df5, by = "url")
+books_clean6 <- books_clean6 %>% left_join(details_df6, by = "url")
+
 
 #Combining all the cleaned data frames into one final data frame
-books_clean <- bind_rows(books_clean1, books_clean2, books_clean3, books_clean4, books_clean5, books_clean6, books_clean7, books_clean8, books_clean9, books_clean10)
+books_clean <- bind_rows(books_clean1, books_clean2, books_clean3, books_clean4, books_clean5, books_clean6)
 books_clean <- books_clean %>% distinct() #removing duplicate rows
 
 #removing unnecessary data frames and variables to free up memory
-rm(books_data1, books_data2, books_data3, books_data4, books5, books6, books7, books8, books6, books9, books10)
-rm(books_clean1, books_clean2, books_clean3, books_clean4, books_clean5, books_clean6, books_clean7, books_clean8, books_clean9, books_clean10)
-rm(details_df1, details_df2, details_df3, details_df4, details_df5, details_df6, details_df7, details_df8, details_df9, details_df10)
-rm(link1t5, link6t10, link11t15, link16t20, link21t25, link26t30, link31t35, link36t40, link41t45, link46t50)
+rm(books_data1, books_data2, books_data3, books_data4, books_data5, books_data6)
+rm(books_clean1, books_clean2, books_clean3, books_clean4, books_clean5, books_clean6)
+rm(details_df1, details_df2, details_df3, details_df4, details_df5, details_df6)
+rm(link1t5, link6t10, link11t15, link16t20, link21t25, link26t30)
 
 #Keeping only the numeric value in the price column
 books_clean$price <- as.numeric(str_extract(books_clean$price, "\\d+\\.?\\d*"))
@@ -221,7 +193,6 @@ get_pages <- function(details) {
 # Applying the function to get pages data from details column and filling in the pages column where it is NA
 books_clean$pages <- ifelse(is.na(books_clean$pages), sapply(books_clean$details, get_pages), books_clean$pages)
   
-
 #Keeping only the numeric value in the pages column
 books_clean$pages <- as.numeric(str_extract(books_clean$pages, "\\d+"))
 
@@ -285,7 +256,7 @@ get_genre <- function(details) {
   # Define keywords properly as character strings
   keywords <- c(
     "Fiction", "Science Fiction", "Fantasy", "Mystery", "Thriller", "Romance",
-    "Biography", "History", "Self Help","Self-Help", "Children's", "Young Adult", "Horror",
+    "Biography", "History", "Self Help","Self-Help", "Young Adult", "Horror",
     "Classic", "Poetry", "Graphic Novel", "Novel", "Short Story", "Essay",
     "Memoir", "Travel", "Philosophy", "Religion", "Humor", "Business", "Health",
     "Historical Fiction", "Science Fiction", "Biography/Memoir", "Business & Economics",
@@ -330,6 +301,9 @@ books_clean$title <- mapply(reformat_title, books_clean$title, books_clean$autho
 books_clean <- books_clean %>%
   select(rank, title, authors, genre, price, price_avg, price_paperback, price_hardcover, pages, summary, details, url)
 
+#Summarize the data frame to get an overview of the data
+summary(books_clean)
+
 #Plotting missing values in the data frame
 plot_missing <- function(df) {
   missing_counts <- sapply(df, function(x) sum(is.na(x)))
@@ -363,45 +337,91 @@ plot_missing(books_clean)
 # Printing the final data frame
 print(books_clean)
 
-#Pages vs Price Scatter Plot
-ggplot(books_clean, aes(x = pages, y = price_avg)) +
-  geom_point(color = "blue", alpha = 0.6) +
-  labs(title = "Pages vs Average Price", x = "Number of Pages", y = "Average Price (BDT)") +
+#handleing outliers by capping the values at the 95th percentile
+cap_values <- function(x, lower_quantile = 0.05, upper_quantile = 0.95) {
+  qnt <- quantile(x, probs = c(lower_quantile, upper_quantile), na.rm = TRUE)
+  x[x < qnt[1]] <- qnt[1]
+  x[x > qnt[2]] <- qnt[2]
+  return(x)
+}
+
+books_clean$price_avg <- cap_values(books_clean$price_avg)
+books_clean$pages     <- cap_values(books_clean$pages)
+
+#applying log transformation to the price and pages columns to reduce skewness
+books_clean$price_log <- log1p(books_clean$price_avg)
+books_clean$pages_log <- log1p(books_clean$pages)
+
+#normalization of price and pages columns for better visualization
+# Define normalization function
+normalize <- function(vec) {
+  return((vec - min(vec, na.rm = TRUE)) / (max(vec, na.rm = TRUE) - min(vec, na.rm = TRUE)))
+}
+
+# Applying to pages and prices columns
+books_clean$price_norm <- normalize(books_clean$price_avg)
+books_clean$pages_norm <- normalize(books_clean$pages)
+
+#encoding the genre variable using one-hot encoding
+books_genre_split <- books_clean %>%
+  separate_rows(genre, sep = ",\\s*")
+
+#creating dummy variables for the genre variable
+dummies <- dummyVars(~ genre, data = books_genre_split)
+genre_encoded <- predict(dummies, newdata = books_genre_split)
+
+#combining the encoded genre variables with the original data frame
+books_encoded <- cbind(books_genre_split %>% select(-genre), genre_encoded)
+books_encoded$pages <- as.numeric(books_encoded$pages)
+
+head(books_clean)
+
+
+#creating categorical variable for price and pages
+books_clean$pages_bin <- cut(
+  books_clean$pages,
+  breaks = c(-Inf, 150, 300, 500, Inf),
+  labels = c("Short", "Medium", "Long", "Very Long")
+)
+
+books_clean$price_bin <- cut(
+  books_clean$price_avg,
+  breaks = c(-Inf, 300, 600, 1000, Inf),
+  labels = c("Low", "Affordable", "Premium", "Luxury")
+)
+
+#price distribution
+ggplot(books_clean, aes(x = price_avg)) +
+  geom_histogram(binwidth = 50, fill = "purple", color = "black") +
+  labs(title = "Distribution of Average Book Prices", x = "Average Price (BDT)", y = "Count") +
   theme_minimal()
 
-#Boxplot of Price by Format
-books_clean_long <- books_clean %>%
-  pivot_longer(cols = c(price_paperback, price_hardcover), names_to = "format", values_to = "pivoted_price")
-ggplot(books_clean_long, aes(x = format, y = pivoted_price)) +
-  geom_boxplot(fill = c("lightblue", "lightgreen")) +
-  labs(title = "Price Distribution by Format", x = "Format", y = "Price (BDT)") +
-  theme_minimal()
+#Pages vs Price
+ggplot(books_clean, aes(x = pages_bin, y = price_norm, fill = pages_bin)) +
+  geom_boxplot() +
+  labs(title = "Normalized Price by Book Length Category",
+       x = "Book Length Category", y = "Normalized Price")
 
 #Genre vs Average Price
 books_clean %>%
   # Split multiple genres into separate rows
   separate_rows(genre, sep = ",\\s*") %>%
   group_by(genre) %>%
-  summarise(avg_price = mean(price_avg, na.rm = TRUE)) %>%
+  summarise(avg_price = mean(price_norm, na.rm = TRUE)) %>%
   ggplot(aes(x = reorder(genre, avg_price), y = avg_price, fill = genre)) +
   geom_col(show.legend = FALSE) +
   coord_flip() +
   labs(title = "Average Price by Genre",
        x = "Genre", y = "Average Price")
 
-#Price vs Rank Scatter Plot
-books_clean %>%
-  # Split multiple genres into separate rows
-  separate_rows(genre, sep = ",\\s*") %>%
-  ggplot(aes(x = pages, y = rank, color = genre)) +
-  geom_point(alpha = 0.6) +
-  geom_smooth(method = "lm", se = FALSE, color = "black") +
-  labs(title = "Pages vs Bestseller Rank",
-       x = "Pages",
-       y = "Rank")
+#Price vs Rank
+ggplot(books_clean, aes(x = price_bin, y = rank, fill = price_bin)) +
+  geom_boxplot() +
+  labs(title = "Bestseller Rank by Price Category",
+       x = "Price Category", y = "Rank")
 
 #Genre Popularity by rank
-books_rank_ready %>%
+books_clean%>%
   separate_rows(genre, sep = ",\\s*") %>%   # split multi-genre books
   group_by(genre) %>%
   summarise(avg_rank = mean(rank, na.rm = TRUE)) %>%
@@ -428,97 +448,99 @@ books_encoded$pages <- as.numeric(books_encoded$pages)
 
 #spiltting the data into training and testing
 set.seed(123) # Setting seed for reproducibility
-train_index <- createDataPartition(books_encoded$price_avg, p = 0.8, list = FALSE) # 80% for training
+train_index <- createDataPartition(books_encoded$price_avg, p = 0.7, list = FALSE) # 70% for training
 train_data <- books_encoded[train_index, ]
 test_data <- books_encoded[-train_index, ]
 
 # Fit linear regression model
-model_price <- lm(
-  price_avg ~ pages + rank + genreAction + genreAdventure + genreRomance + genreThriller,
-  data = train_data
-)
-
-summary(model_price)
+lm_model <- lm(rank ~ price_norm + pages_norm + genreAction + genreAdventure + genreFantasy + genrePhilosophy + genreRomance, 
+               data = train_data)
 
 # Predictions
-pred_price <- predict(model_price, newdata = test_data)
-
-# Check the first few predictions
-head(pred_price)
-
-# Compare predicted vs actual
-results <- data.frame(
-  Actual = test_data$price_avg,
-  Predicted = pred_price
-)
-
-head(results)
-
-#Performance metrics
-# RMSE (Root Mean Squared Error)
-rmse <- sqrt(mean((results$Actual - results$Predicted)^2))
-
-# MAE (Mean Absolute Error)
-mae <- mean(abs(results$Actual - results$Predicted))
-
-# R-squared (on test data)
-sst <- sum((results$Actual - mean(results$Actual))^2)
-sse <- sum((results$Actual - results$Predicted)^2)
-rsq <- 1 - sse/sst
-
-rmse
-mae
-rsq
-
-#graphical representation of predicted vs actual values
-ggplot(results, aes(x = Actual, y = Predicted)) +
-  geom_point(alpha = 0.6, color = "blue") +
-  geom_abline(slope = 1, intercept = 0, color = "red") +
-  labs(title = "Actual vs Predicted Prices",
-       x = "Actual Price",
-       y = "Predicted Price")
-
-#Selected features for predicting rank are pages, genre, and price.
-# Fit linear regression for rank prediction
-model_rank <- lm(
-  rank ~ price_avg + pages + genreAction + genreAdventure + genreRomance + genreThriller,
-  data = train_data
-)
-
-summary(model_rank)
-
-# Predict on test data
-pred_rank <- predict(model_rank, newdata = test_data)
+lm_preds <- predict(lm_model, newdata = test_data)
 
 # Compare actual vs predicted
 results_rank <- data.frame(
   Actual = test_data$rank,
-  Predicted = pred_rank
+  Predicted = lm_preds
 )
 
+# Performance metrics
+lm_rmse <- sqrt(mean((test_data$rank - lm_preds)^2))
+lm_mae  <- mean(abs(test_data$rank - lm_preds))
+lm_r2   <- 1 - sum((test_data$rank - lm_preds)^2) / sum((test_data$rank - mean(test_data$rank))^2)
 
-head(results_rank)
-# RMSE
-rmse_rank <- sqrt(mean((results_rank$Actual - results_rank$Predicted)^2))
+lm_rmse
+lm_mae
+lm_r2
 
-# MAE
-mae_rank <- mean(abs(results_rank$Actual - results_rank$Predicted))
-
-# R-squared
-sst <- sum((results_rank$Actual - mean(results_rank$Actual))^2)
-sse <- sum((results_rank$Actual - results_rank$Predicted)^2)
-rsq_rank <- 1 - sse/sst
-
-rmse_rank
-mae_rank
-rsq_rank
-
+#visualization of actual vs predicted values for rank
 ggplot(results_rank, aes(x = Actual, y = Predicted)) +
   geom_point(alpha = 0.6, color = "purple") +
   geom_abline(slope = 1, intercept = 0, color = "red") +
-  labs(title = "Actual vs Predicted Bestseller Rank",
+  labs(title = "Actual vs Predicted Bestseller Rank(Linear Regression)",
        x = "Actual Rank",
        y = "Predicted Rank")
 
+#Building a random forest model to predict the rank of the books based on the same features
+set.seed(123)
+rf_model <- randomForest(
+  rank ~ price_avg + pages + genreRomance + genreFantasy + genreThriller,
+  data = train_data,
+  ntree = 500,
+  mtry = 3,
+  importance = TRUE
+)
 
-#rm(list = ls())
+# Predictions
+rf_preds <- predict(rf_model, newdata = test_data)
+
+# Performance metrics
+rf_rmse <- sqrt(mean((test_data$rank - rf_preds)^2))
+rf_mae  <- mean(abs(test_data$rank - rf_preds))
+rf_r2   <- 1 - sum((test_data$rank - rf_preds)^2) / sum((test_data$rank - mean(test_data$rank))^2)
+
+rf_rmse
+rf_mae
+rf_r2
+
+#Compare actual vs predicted
+results_rf <- data.frame(
+  Actual = test_data$rank,
+  Predicted = rf_preds)
+
+#visualization of actual vs predicted values for rank
+ggplot(results_rf, aes(x = Actual, y = Predicted)) +
+  geom_point(alpha = 0.6, color = "blue") +
+  geom_abline(slope = 1, intercept = 0, color = "red") +
+  labs(title = "Actual vs Predicted Bestseller Rank(Random Forest)",
+       x = "Actual Rank",
+       y = "Predicted Rank")
+
+#Comparing the performance of the two models
+performance_comparison <- data.frame(
+  Model = c("Linear Regression", "Random Forest"),
+  RMSE = c(lm_rmse, rf_rmse),
+  MAE = c(lm_mae, rf_mae),
+  R2 = c(lm_r2, rf_r2))
+print(performance_comparison)
+
+#visualization of model performance comparison
+performance_comparison_long <- performance_comparison %>%
+  pivot_longer(cols = c(RMSE, MAE, R2), names_to
+                   = "Metric", values_to = "Value")
+ggplot(performance_comparison_long, aes(x = Model, y = Value, fill = Model)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ Metric, scales = "free_y") +
+  labs(title = "Model Performance Comparison",
+       x = "Model",
+       y = "Value") +
+  theme_minimal()
+
+#The random forest model performed better than the linear regression model 
+#in predicting the bestseller rank of the books, as it had a lower RMSE and MAE, 
+#and a higher R-squared value. This suggests that the relationship between the features and the target variable 
+#is likely non-linear, which is better captured by the random forest model.
+
+
+#rm(list)
