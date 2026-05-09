@@ -71,7 +71,7 @@ books_data4 <- bind_rows(future_lapply(link16t20, read_webpage))
 books_data5 <- bind_rows(future_lapply(link21t25, read_webpage))
 books_data6 <- bind_rows(future_lapply(link26t30, read_webpage))
 
-+# Removing non-books (rows with NA author)
+# Removing non-books (rows with NA author)
 books_clean1 <- books_data1 %>% 
   filter(!is.na(authors))
 books_clean2 <- books_data2 %>% 
@@ -151,15 +151,13 @@ books_clean <- bind_rows(books_clean1, books_clean2, books_clean3, books_clean4,
 books_clean <- books_clean %>% distinct() #removing duplicate rows
 
 #removing unnecessary data frames and variables to free up memory
-rm(books_data1, books_data2, books_data3, books_data4, books_data5, books_data6)
-rm(books_clean1, books_clean2, books_clean3, books_clean4, books_clean5, books_clean6)
-rm(details_df1, details_df2, details_df3, details_df4, details_df5, details_df6)
-rm(link1t5, link6t10, link11t15, link16t20, link21t25, link26t30)
+#rm(books_data1, books_data2, books_data3, books_data4, books_data5, books_data6)
+#rm(books_clean1, books_clean2, books_clean3, books_clean4, books_clean5, books_clean6)
+#rm(details_df1, details_df2, details_df3, details_df4, details_df5, details_df6)
+#rm(link1t5, link6t10, link11t15, link16t20, link21t25, link26t30)
 
 #Keeping only the numeric value in the price column
 books_clean$price <- as.numeric(str_extract(books_clean$price, "\\d+\\.?\\d*"))
-
-library(stringr)
 
 # Function to get the start position of the 2nd "pages"
 get_pages_start <- function(details){
@@ -359,23 +357,10 @@ normalize <- function(vec) {
 }
 
 # Applying to pages and prices columns
-books_clean$price_norm <- normalize(books_clean$price_avg)
-books_clean$pages_norm <- normalize(books_clean$pages)
-
-#encoding the genre variable using one-hot encoding
-books_genre_split <- books_clean %>%
-  separate_rows(genre, sep = ",\\s*")
-
-#creating dummy variables for the genre variable
-dummies <- dummyVars(~ genre, data = books_genre_split)
-genre_encoded <- predict(dummies, newdata = books_genre_split)
-
-#combining the encoded genre variables with the original data frame
-books_encoded <- cbind(books_genre_split %>% select(-genre), genre_encoded)
-books_encoded$pages <- as.numeric(books_encoded$pages)
+books_clean$price_norm <- normalize(books_clean$price_log)
+books_clean$pages_norm <- normalize(books_clean$pages_log)
 
 head(books_clean)
-
 
 #creating categorical variable for price and pages
 books_clean$pages_bin <- cut(
@@ -476,24 +461,57 @@ lm_r2
 
 #visualization of actual vs predicted values for rank
 ggplot(results_rank, aes(x = Actual, y = Predicted)) +
-  geom_point(alpha = 0.6, color = "purple") +
-  geom_abline(slope = 1, intercept = 0, color = "red") +
-  labs(title = "Actual vs Predicted Bestseller Rank(Linear Regression)",
-       x = "Actual Rank",
-       y = "Predicted Rank")
+  geom_point(aes(color = "Predictions"), alpha = 0.7, size = 3) +   # points with legend
+  geom_abline(aes(color = "Perfect Fit"), slope = 1, intercept = 0, size = 1) + # 1:1 line
+  geom_hline(yintercept = 0, linetype = "solid", color = "black") + # horizontal axis line
+  geom_vline(xintercept = 0, linetype = "solid", color = "black") + # vertical axis line
+  scale_color_manual(
+    name = "Legend", 
+    values = c("Predictions" = "#6A5ACD", "Perfect Fit" = "red")
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Actual vs Predicted Bestseller Rank (Linear Regression)",
+    x = "Actual Rank",
+    y = "Predicted Rank"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#333333"),
+    axis.title = element_text(face = "bold")
+  )
 
 #Building a random forest model to predict the rank of the books based on the same features
 set.seed(123)
-rf_model <- randomForest(
-  rank ~ price_avg + pages + genreRomance + genreFantasy + genreThriller,
-  data = train_data,
-  ntree = 500,
-  mtry = 3,
-  importance = TRUE
+
+# Cross-validation setup
+control <- trainControl(
+  method = "cv",       # k-fold cross-validation
+  number = 10,          # 10 folds
+  search = "grid"
 )
 
-# Predictions
-rf_preds <- predict(rf_model, newdata = test_data)
+# Expanded grid: tune mtry and nodesize
+tunegrid <- expand.grid(
+  .mtry = c(2, 3, 4, 5, 6, 7, 8)   # variables per split
+)
+
+# Train Random Forest with deeper tuning
+rf_tuned <- train(
+  rank ~ price_norm + pages_norm + genreAction + genreAdventure + genreFantasy + genrePhilosophy + genreRomance,
+  data = train_data,
+  method = "rf",
+  metric = "RMSE",
+  tuneGrid = tunegrid,
+  trControl = control,
+  ntree = 1500,           # more trees for stability
+  nodesize = 2            # smaller leaf size to reduce median bias
+)
+
+print(rf_tuned)
+
+# Best model
+rf_best <- rf_tuned$finalModel
+rf_preds <- predict(rf_tuned, newdata = test_data)
 
 # Performance metrics
 rf_rmse <- sqrt(mean((test_data$rank - rf_preds)^2))
@@ -511,11 +529,24 @@ results_rf <- data.frame(
 
 #visualization of actual vs predicted values for rank
 ggplot(results_rf, aes(x = Actual, y = Predicted)) +
-  geom_point(alpha = 0.6, color = "blue") +
-  geom_abline(slope = 1, intercept = 0, color = "red") +
-  labs(title = "Actual vs Predicted Bestseller Rank(Random Forest)",
-       x = "Actual Rank",
-       y = "Predicted Rank")
+  geom_point(aes(color = "Predictions"), alpha = 0.7, size = 3) +   # points with legend
+  geom_abline(aes(color = "Perfect Fit"), slope = 1, intercept = 0, size = 1) + # 1:1 line
+  geom_hline(yintercept = 0, linetype = "solid", color = "black") + # horizontal axis line
+  geom_vline(xintercept = 0, linetype = "solid", color = "black") + # vertical axis line
+  scale_color_manual(
+    name = "Legend", 
+    values = c("Predictions" = "maroon", "Perfect Fit" = "red")
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Actual vs Predicted Bestseller Rank (Random Forest)",
+    x = "Actual Rank",
+    y = "Predicted Rank"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", color = "black"),
+    axis.title = element_text(face = "bold")
+  )
 
 #Comparing the performance of the two models
 performance_comparison <- data.frame(
@@ -527,20 +558,57 @@ print(performance_comparison)
 
 #visualization of model performance comparison
 performance_comparison_long <- performance_comparison %>%
-  pivot_longer(cols = c(RMSE, MAE, R2), names_to
-                   = "Metric", values_to = "Value")
+  pivot_longer(cols = c(RMSE, MAE, R2), names_to = "Metric", values_to = "Value")
+
 ggplot(performance_comparison_long, aes(x = Model, y = Value, fill = Model)) +
-  geom_col(show.legend = FALSE) +
+  geom_col(position = "dodge", width = 0.7) +
   facet_wrap(~ Metric, scales = "free_y") +
-  labs(title = "Model Performance Comparison",
-       x = "Model",
-       y = "Value") +
-  theme_minimal()
+  geom_hline(yintercept = 0, color = "black") +
+  labs(
+    title = "Model Performance Comparison",
+    x = "Model",
+    y = "Metric Value"
+  ) +
+  scale_fill_manual(values = c("Linear Regression" = "purple", "Random Forest" = "maroon")) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", color = "#333333"),
+    axis.title = element_text(face = "bold"),
+    strip.text = element_text(face = "bold", size = 12),
+    axis.text.x = element_text(angle = 30, hjust = 1, size = 12)  # rotate labels to avoid overlap
+  )
 
-#The random forest model performed better than the linear regression model 
-#in predicting the bestseller rank of the books, as it had a lower RMSE and MAE, 
-#and a higher R-squared value. This suggests that the relationship between the features and the target variable 
-#is likely non-linear, which is better captured by the random forest model.
+train_data$rank_class <- cut(train_data$rank,
+                             breaks = c(0, 50, 100, 200, 300, 400, max(train_data$rank)),
+                             labels = c("Top50", "51-100", "101-200", "201-300", "301-400", "400+"))
 
+test_data$rank_class <- cut(test_data$rank,
+                            breaks = c(0, 50, 100, 200,300, 400, max(test_data$rank)),
+                            labels = c("Top50", "51-100", "101-200", "201-300", "301-400", "400+"))
+
+# Predictions
+rf_classifier <- randomForest(
+  rank_class ~ price_norm + pages_norm + genreAction + genreAdventure + genreFantasy + genrePhilosophy + genreRomance,
+  data = train_data,
+  ntree = 1500,
+  mtry = 8,
+  importance = TRUE
+)
+rf_preds_class <- predict(rf_classifier, newdata = test_data)
+
+# Confusion matrix
+cm <- confusionMatrix(rf_preds_class, test_data$rank_class)
+
+# Convert to data frame for ggplot heatmap
+cm_df <- as.data.frame(cm$table)
+
+ggplot(cm_df, aes(x = Reference, y = Prediction, fill = Freq)) +
+  geom_tile(color = "white") +
+  geom_text(aes(label = Freq), color = "black", size = 5) +
+  scale_fill_gradient(low = "lightblue", high = "navy") +
+  labs(title = "Random Forest Classifier Confusion Matrix Heatmap",
+       x = "Actual Class",
+       y = "Predicted Class") +
+  theme_minimal(base_size = 14)
 
 #rm(list)
